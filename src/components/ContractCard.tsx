@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Clock, Scales, Truck } from 'lucide-react';
+import { ArrowRight, Clock, Scale, Truck } from 'lucide-react';
 
 export interface ContractCardProps {
   id: string;
