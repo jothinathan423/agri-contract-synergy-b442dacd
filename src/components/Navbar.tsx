@@ -1,219 +1,314 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  Menu, 
+  X, 
+  User, 
+  LogOut,
+  Bell,
+  Settings,
+  FileText,
+  Home,
+  LayoutDashboard,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
-import AuthModal from './AuthModal';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 
-const Navbar: React.FC = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authType, setAuthType] = useState<'login' | 'register'>('login');
+const Navbar = () => {
+  const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === '/';
-  
-  // Detect if user is logged in (in a real app, this would check auth state)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Track scroll position to change navbar style
+  
+  // Simulate checking if user is logged in based on route
+  useEffect(() => {
+    if (location.pathname.includes('/dashboard') || 
+        location.pathname.includes('/contracts') || 
+        location.pathname.includes('/profile')) {
+      setIsLoggedIn(true);
+    } else {
+      // For demo purposes, we'll keep the user logged in
+      // In a real app, this would check auth state
+      // setIsLoggedIn(false);
+    }
+  }, [location.pathname]);
+  
+  // Change navbar style on scroll
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 10);
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
     };
-
-    window.addEventListener('scroll', handleScroll);
     
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const openAuthModal = (type: 'login' | 'register') => {
-    setAuthType(type);
-    setAuthModalOpen(true);
-    setMobileMenuOpen(false);
+  
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
-
-  // Mock login/logout for demo purposes
+  
   const handleLogin = () => {
+    navigate('/dashboard');
     setIsLoggedIn(true);
-    setAuthModalOpen(false);
   };
-
+  
   const handleLogout = () => {
     setIsLoggedIn(false);
+    navigate('/');
   };
-
+  
+  const navLinks = [
+    { 
+      name: 'Home', 
+      path: '/',
+      icon: <Home className="h-4 w-4 mr-2" />
+    },
+    { 
+      name: 'Dashboard', 
+      path: '/dashboard',
+      icon: <LayoutDashboard className="h-4 w-4 mr-2" />,
+      requiresAuth: true
+    },
+    { 
+      name: 'Contracts', 
+      path: '/contracts',
+      icon: <FileText className="h-4 w-4 mr-2" />,
+      requiresAuth: true
+    },
+    { 
+      name: 'Profile', 
+      path: '/profile',
+      icon: <User className="h-4 w-4 mr-2" />,
+      requiresAuth: true
+    },
+  ];
+  
+  const filteredNavLinks = isLoggedIn 
+    ? navLinks 
+    : navLinks.filter(link => !link.requiresAuth);
+  
   return (
-    <>
-      <header 
-        className={`sticky top-0 z-40 w-full transition-all duration-200 ${
-          isScrolled || !isHomePage ? 'bg-background/80 backdrop-blur-lg border-b' : 'bg-transparent'
-        }`}
-      >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
-                  AgriConnect
-                </span>
+    <header 
+      className={`sticky top-0 z-40 w-full transition-all duration-200 ${
+        isScrolled 
+          ? 'bg-background/80 backdrop-blur-md border-b shadow-sm'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="bg-primary rounded-full p-1.5">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="text-white"
+                >
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <span className="font-bold text-xl hidden sm:inline-block">AgriConnect</span>
+            </Link>
+          </div>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {filteredNavLinks.map((link, index) => (
+              <Link
+                key={index}
+                to={link.path}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  location.pathname === link.path 
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                {link.name}
               </Link>
-            </div>
+            ))}
+          </nav>
+          
+          {/* Auth buttons or user menu */}
+          <div className="flex items-center space-x-4">
+            {isLoggedIn ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <Bell className="h-5 w-5" />
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                        3
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80">
+                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="max-h-80 overflow-y-auto">
+                      {[1, 2, 3].map((i) => (
+                        <DropdownMenuItem key={i} className="cursor-pointer py-3">
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5">
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                                <Bell className="h-3 w-3" />
+                              </Badge>
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium leading-none">
+                                New contract offer received
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Fresh Foods Ltd. has sent you a new contract for Organic Tomatoes.
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {i * 2} hour{i * 2 !== 1 ? 's' : ''} ago
+                              </p>
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="cursor-pointer justify-center text-primary">
+                      View all notifications
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-primary/10 text-primary">JD</AvatarFallback>
+                      </Avatar>
+                      <span className="hidden lg:inline-block font-medium">John Doe</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem onClick={() => navigate('/profile')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>My Contracts</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-500" onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="hidden sm:inline-flex"
+                  onClick={() => navigate('/login')}
+                >
+                  Login
+                </Button>
+                <Button 
+                  onClick={handleLogin}
+                >
+                  Get Started
+                </Button>
+              </>
+            )}
             
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link 
-                to="/" 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === '/' ? 'text-primary' : 'text-foreground'
-                }`}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/about" 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === '/about' ? 'text-primary' : 'text-foreground'
-                }`}
-              >
-                About
-              </Link>
-              <Link 
-                to="/features" 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === '/features' ? 'text-primary' : 'text-foreground'
-                }`}
-              >
-                Features
-              </Link>
-              <Link 
-                to="/contact" 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === '/contact' ? 'text-primary' : 'text-foreground'
-                }`}
-              >
-                Contact
-              </Link>
-              
-              {isLoggedIn ? (
-                <div className="flex items-center gap-4">
-                  <Link to="/dashboard">
-                    <Button variant="outline" size="sm">Dashboard</Button>
-                  </Link>
-                  <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="sm" onClick={() => openAuthModal('login')}>
-                    Login
-                  </Button>
-                  <Button size="sm" onClick={() => openAuthModal('register')}>
-                    Register
-                  </Button>
-                </div>
-              )}
-            </nav>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden rounded-md p-2 text-foreground hover:bg-secondary"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Button variant="ghost" size="icon" onClick={toggleMenu}>
+                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden bg-background border-b"
-            >
-              <div className="space-y-1 px-4 py-4">
-                <Link 
-                  to="/" 
-                  className="block py-2 text-base font-medium hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link 
-                  to="/about" 
-                  className="block py-2 text-base font-medium hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <Link 
-                  to="/features" 
-                  className="block py-2 text-base font-medium hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Features
-                </Link>
-                <Link 
-                  to="/contact" 
-                  className="block py-2 text-base font-medium hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Contact
-                </Link>
+      </div>
+      
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden border-t"
+          >
+            <div className="container mx-auto px-4 py-4">
+              <nav className="flex flex-col space-y-4">
+                {filteredNavLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    to={link.path}
+                    className={`flex items-center py-2 text-sm font-medium transition-colors hover:text-primary ${
+                      location.pathname === link.path 
+                        ? 'text-primary'
+                        : 'text-muted-foreground'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.icon}
+                    {link.name}
+                  </Link>
+                ))}
                 
-                {isLoggedIn ? (
-                  <>
-                    <Link 
-                      to="/dashboard" 
-                      className="block py-2 text-base font-medium hover:text-primary"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                    <button 
-                      className="block w-full text-left py-2 text-base font-medium hover:text-primary"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      className="block w-full text-left py-2 text-base font-medium hover:text-primary"
-                      onClick={() => openAuthModal('login')}
-                    >
-                      Login
-                    </button>
-                    <button 
-                      className="block w-full text-left py-2 text-base font-medium hover:text-primary"
-                      onClick={() => openAuthModal('register')}
-                    >
-                      Register
-                    </button>
-                  </>
+                {!isLoggedIn && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full sm:hidden"
+                    onClick={() => {
+                      navigate('/login');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Login
+                  </Button>
                 )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
-
-      <AuthModal 
-        isOpen={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)}
-        type={authType}
-        setType={setAuthType}
-        onLogin={handleLogin}
-      />
-    </>
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
   );
 };
 
