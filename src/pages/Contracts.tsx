@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import ContractCard, { ContractCardProps } from '@/components/ContractCard';
+import ContractCard from '@/components/ContractCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,85 +31,17 @@ import {
   Search, 
   SlidersHorizontal 
 } from 'lucide-react';
-
-// Mock data
-const mockContracts: ContractCardProps[] = [
-  {
-    id: '1',
-    title: 'Wheat Supply Agreement',
-    crop: 'Wheat',
-    quantity: '5,000 kg',
-    price: '$0.40/kg',
-    deadline: 'Sep 30, 2023',
-    status: 'active',
-    counterparty: 'GrainCorp Inc.',
-    counterpartyType: 'buyer',
-  },
-  {
-    id: '2',
-    title: 'Organic Tomatoes Supply',
-    crop: 'Tomatoes',
-    quantity: '2,000 kg',
-    price: '$1.20/kg',
-    deadline: 'Aug 15, 2023',
-    status: 'pending',
-    counterparty: 'Fresh Foods Ltd.',
-    counterpartyType: 'buyer',
-  },
-  {
-    id: '3',
-    title: 'Rice Cultivation Contract',
-    crop: 'Rice',
-    quantity: '8,000 kg',
-    price: '$0.75/kg',
-    deadline: 'Dec 10, 2023',
-    status: 'completed',
-    counterparty: 'Asian Exports Co.',
-    counterpartyType: 'buyer',
-  },
-  {
-    id: '4',
-    title: 'Corn Purchase Agreement',
-    crop: 'Corn',
-    quantity: '10,000 kg',
-    price: '$0.35/kg',
-    deadline: 'Oct 20, 2023',
-    status: 'active',
-    counterparty: 'Midwest Grains LLC',
-    counterpartyType: 'buyer',
-  },
-  {
-    id: '5',
-    title: 'Potato Supply Contract',
-    crop: 'Potatoes',
-    quantity: '15,000 kg',
-    price: '$0.30/kg',
-    deadline: 'Nov 5, 2023',
-    status: 'dispute',
-    counterparty: 'Chip Factory Inc.',
-    counterpartyType: 'buyer',
-  },
-  {
-    id: '6',
-    title: 'Soybean Purchase',
-    crop: 'Soybeans',
-    quantity: '7,500 kg',
-    price: '$0.85/kg',
-    deadline: 'Sep 15, 2023',
-    status: 'active',
-    counterparty: 'Global Foods Corp.',
-    counterpartyType: 'buyer',
-  },
-];
+import { useContracts } from '@/hooks/use-contracts';
 
 const Contracts = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [currentTab, setCurrentTab] = useState('all');
+  const { contracts, loading, error } = useContracts();
   
   // Filter contracts based on search query and status
-  const filteredContracts = mockContracts.filter((contract) => {
+  const filteredContracts = contracts.filter((contract) => {
     const matchesSearch = 
       contract.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       contract.crop.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -139,7 +71,10 @@ const Contracts = () => {
             </p>
           </div>
           <div className="mt-4 md:mt-0">
-            <Button className="flex items-center gap-2">
+            <Button 
+              className="flex items-center gap-2"
+              onClick={() => navigate('/create-contract')}
+            >
               <Plus size={16} />
               <span>New Contract</span>
             </Button>
@@ -206,7 +141,15 @@ const Contracts = () => {
               </div>
               
               <div className="mt-4">
-                {filteredContracts.length === 0 ? (
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Loading contracts...</p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-12">
+                    <p className="text-red-500">{error}</p>
+                  </div>
+                ) : filteredContracts.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">No contracts found matching your criteria.</p>
                   </div>
@@ -216,7 +159,7 @@ const Contracts = () => {
                       <ContractCard
                         key={contract.id}
                         {...contract}
-                        onClick={() => console.log(`Viewing contract ${contract.id}`)}
+                        onClick={() => navigate(`/contracts/${contract.id}`)}
                       />
                     ))}
                   </div>
@@ -236,25 +179,25 @@ const Contracts = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Total Contracts</span>
                   <Badge variant="outline" className="font-medium">
-                    {mockContracts.length}
+                    {contracts.length}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Active Contracts</span>
                   <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                    {mockContracts.filter(c => c.status === 'active').length}
+                    {contracts.filter(c => c.status === 'active').length}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Pending Approval</span>
                   <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                    {mockContracts.filter(c => c.status === 'pending').length}
+                    {contracts.filter(c => c.status === 'pending').length}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Issues/Disputes</span>
                   <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
-                    {mockContracts.filter(c => c.status === 'dispute' || c.status === 'cancelled').length}
+                    {contracts.filter(c => c.status === 'dispute' || c.status === 'cancelled').length}
                   </Badge>
                 </div>
               </div>
@@ -266,23 +209,29 @@ const Contracts = () => {
               <CardTitle className="text-base">Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="border-l-2 border-primary pl-4 pb-4">
-                  <p className="text-sm font-medium">Contract Approved</p>
-                  <p className="text-xs text-muted-foreground mt-1">Organic Tomatoes Supply with Fresh Foods Ltd.</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
+              {contracts.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">No recent activity</p>
                 </div>
-                <div className="border-l-2 border-primary pl-4 pb-4">
-                  <p className="text-sm font-medium">Payment Received</p>
-                  <p className="text-xs text-muted-foreground mt-1">$4,000 for Rice Cultivation Contract</p>
-                  <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="border-l-2 border-primary pl-4 pb-4">
+                    <p className="text-sm font-medium">Contract Approved</p>
+                    <p className="text-xs text-muted-foreground mt-1">Organic Tomatoes Supply with Fresh Foods Ltd.</p>
+                    <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
+                  </div>
+                  <div className="border-l-2 border-primary pl-4 pb-4">
+                    <p className="text-sm font-medium">Payment Received</p>
+                    <p className="text-xs text-muted-foreground mt-1">$4,000 for Rice Cultivation Contract</p>
+                    <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
+                  </div>
+                  <div className="border-l-2 border-primary pl-4 pb-4">
+                    <p className="text-sm font-medium">New Contract Offer</p>
+                    <p className="text-xs text-muted-foreground mt-1">Corn Purchase Agreement from Midwest Grains LLC</p>
+                    <p className="text-xs text-muted-foreground mt-1">2 days ago</p>
+                  </div>
                 </div>
-                <div className="border-l-2 border-primary pl-4 pb-4">
-                  <p className="text-sm font-medium">New Contract Offer</p>
-                  <p className="text-xs text-muted-foreground mt-1">Corn Purchase Agreement from Midwest Grains LLC</p>
-                  <p className="text-xs text-muted-foreground mt-1">2 days ago</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
           
@@ -292,7 +241,7 @@ const Contracts = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/create-contract')}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create New Contract
                 </Button>

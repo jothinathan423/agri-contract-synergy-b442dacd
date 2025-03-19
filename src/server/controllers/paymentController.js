@@ -1,35 +1,20 @@
 
 const Payment = require('../models/paymentModel');
 const Contract = require('../models/contractModel');
-const asyncHandler = require('../utils/asyncHandler');
 const ErrorResponse = require('../utils/errorResponse');
+const asyncHandler = require('../utils/asyncHandler');
 
-// @desc    Get all payments for logged in user
+// @desc    Get all payments
 // @route   GET /api/payments
 // @access  Private
 exports.getAllPayments = asyncHandler(async (req, res) => {
   let query;
   
-  if (req.user.role === 'admin') {
-    // Admin can see all payments
-    query = Payment.find().populate({
-      path: 'contract',
-      select: 'title farmer buyer'
-    });
+  // If user is not admin, only show their own payments
+  if (req.user.role !== 'admin') {
+    query = Payment.find({ user: req.user.id });
   } else {
-    // Users can only see their own payments (as farmer or buyer)
-    const contracts = await Contract.find({
-      $or: [{ farmer: req.user.id }, { buyer: req.user.id }]
-    }).select('_id');
-    
-    const contractIds = contracts.map(contract => contract._id);
-    
-    query = Payment.find({
-      contract: { $in: contractIds }
-    }).populate({
-      path: 'contract',
-      select: 'title farmer buyer'
-    });
+    query = Payment.find();
   }
   
   const payments = await query;
@@ -41,77 +26,122 @@ exports.getAllPayments = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get payment by ID
+// @desc    Get single payment
 // @route   GET /api/payments/:id
 // @access  Private
-exports.getPaymentById = asyncHandler(async (req, res) => {
-  const payment = await Payment.findById(req.params.id).populate({
-    path: 'contract',
-    select: 'title farmer buyer'
-  });
+exports.getPaymentById = asyncHandler(async (req, res, next) => {
+  const payment = await Payment.findById(req.params.id);
   
   if (!payment) {
-    throw new ErrorResponse(`Payment not found with id ${req.params.id}`, 404);
+    return next(new ErrorResponse(`Payment not found with id of ${req.params.id}`, 404));
   }
   
-  // Check ownership
-  const contract = await Contract.findById(payment.contract);
-  
-  if (
-    req.user.role !== 'admin' &&
-    contract.farmer.toString() !== req.user.id &&
-    contract.buyer.toString() !== req.user.id
-  ) {
-    throw new ErrorResponse(`Not authorized to access this payment`, 403);
+  // Make sure user is payment owner or admin
+  if (payment.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to view this payment`, 401));
   }
   
-  res.status(200).json({ success: true, data: payment });
+  res.status(200).json({
+    success: true,
+    data: payment
+  });
 });
 
 // @desc    Create new payment
 // @route   POST /api/payments
 // @access  Private
-exports.createPayment = asyncHandler(async (req, res) => {
+exports.createPayment = asyncHandler(async (req, res, next) => {
   // Add user to req.body
-  req.body.createdBy = req.user.id;
+  req.body.user = req.user.id;
   
   // Check if contract exists
   const contract = await Contract.findById(req.body.contract);
   
   if (!contract) {
-    throw new ErrorResponse(`Contract not found with id ${req.body.contract}`, 404);
+    return next(new ErrorResponse(`Contract not found with id of ${req.body.contract}`, 404));
   }
   
-  // Check ownership - only buyer can make payments
-  if (contract.buyer.toString() !== req.user.id && req.user.role !== 'admin') {
-    throw new ErrorResponse(`Only the buyer can make payments for this contract`, 403);
+  // Make sure user is contract owner or counterparty
+  if (contract.user.toString() !== req.user.id && contract.counterpartyId.toString() !== req.user.id) {
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to create a payment for this contract`, 401));
   }
   
   const payment = await Payment.create(req.body);
   
-  res.status(201).json({ success: true, data: payment });
+  res.status(201).json({
+    success: true,
+    data: payment
+  });
+});
+
+// @desc    Update payment
+// @route   PUT /api/payments/:id
+// @access  Private
+exports.updatePayment = asyncHandler(async (req, res, next) => {
+  let payment = await Payment.findById(req.params.id);
+  
+  if (!payment) {
+    return next(new ErrorResponse(`Payment not found with id of ${req.params.id}`, 404));
+  }
+  
+  // Make sure user is payment owner or admin
+  if (payment.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this payment`, 401));
+  }
+  
+  payment = await Payment.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true
+  });
+  
+  res.status(200).json({
+    success: true,
+    data: payment
+  });
+});
+
+// @desc    Delete payment
+// @route   DELETE /api/payments/:id
+// @access  Private
+exports.deletePayment = asyncHandler(async (req, res, next) => {
+  const payment = await Payment.findById(req.params.id);
+  
+  if (!payment) {
+    return next(new ErrorResponse(`Payment not found with id of ${req.params.id}`, 404));
+  }
+  
+  // Make sure user is payment owner or admin
+  if (payment.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to delete this payment`, 401));
+  }
+  
+  await payment.remove();
+  
+  res.status(200).json({
+    success: true,
+    data: {}
+  });
 });
 
 // @desc    Get payments for a contract
 // @route   GET /api/payments/contract/:contractId
 // @access  Private
-exports.getPaymentsByContract = asyncHandler(async (req, res) => {
-  const contract = await Contract.findById(req.params.contractId);
+exports.getPaymentsByContract = asyncHandler(async (req, res, next) => {
+  const contractId = req.params.contractId;
+  
+  // Check if contract exists
+  const contract = await Contract.findById(contractId);
   
   if (!contract) {
-    throw new ErrorResponse(`Contract not found with id ${req.params.contractId}`, 404);
+    return next(new ErrorResponse(`Contract not found with id of ${contractId}`, 404));
   }
   
-  // Check ownership
-  if (
-    req.user.role !== 'admin' &&
-    contract.farmer.toString() !== req.user.id &&
-    contract.buyer.toString() !== req.user.id
-  ) {
-    throw new ErrorResponse(`Not authorized to access payments for this contract`, 403);
+  // Make sure user is contract owner or counterparty
+  if (contract.user.toString() !== req.user.id && contract.counterpartyId.toString() !== req.user.id) {
+    return next(new ErrorResponse(`User ${req.user.id} is not authorized to view payments for this contract`, 401));
   }
   
-  const payments = await Payment.find({ contract: req.params.contractId });
+  const payments = await Payment.find({ contract: contractId });
   
   res.status(200).json({
     success: true,

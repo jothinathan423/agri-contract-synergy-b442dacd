@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import useMobile from "@/hooks/use-mobile";
+import { useMobile } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 
 const Navbar = () => {
