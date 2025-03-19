@@ -11,6 +11,9 @@ import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import CreateContract from "./pages/CreateContract";
 import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import { AnimatePresence } from "framer-motion";
 
 // Create a client for React Query
@@ -29,6 +32,9 @@ const AnimatedRoutes = () => {
         <Route path="/contracts/:id" element={<ContractDetail />} />
         <Route path="/contracts/create" element={<CreateContract />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
